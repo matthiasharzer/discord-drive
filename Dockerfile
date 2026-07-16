@@ -1,4 +1,4 @@
-FROM golang:1.26.4-alpine3.23 AS build
+FROM golang:1.26.5-alpine3.23 AS build
 
 ARG version=unknown
 
@@ -15,7 +15,7 @@ COPY . .
 
 RUN module_path=$(go list -m) && \
 	go build \
-		-o /go/bin/<tool-name> \
+		-o /go/bin/discord-drive \
 		-ldflags "-X ${module_path}/cmd/version.version=$version" \
 		.
 
@@ -23,11 +23,11 @@ FROM alpine:3.24
 
 RUN addgroup -S app && adduser -S -G app app
 
-COPY --from=build /go/bin/<tool-name> /usr/local/bin/<tool-name>
+COPY --from=build /go/bin/discord-drive /usr/local/bin/discord-drive
 
-WORKDIR /var/lib/<tool-name>
-RUN chown app:app /var/lib/<tool-name>
+WORKDIR /var/lib/discord-drive
+RUN chown app:app /var/lib/discord-drive
 
 USER app
 
-ENTRYPOINT ["/usr/local/bin/<tool-name>"]
+ENTRYPOINT ["/usr/local/bin/discord-drive"]

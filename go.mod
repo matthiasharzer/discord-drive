@@ -1,6 +1,6 @@
-module github.com/username/template
+module github.com/matthiasharzer/discord-drive
 
-go 1.26.4
+go 1.26.5
 
 tool honnef.co/go/tools/cmd/staticcheck
 
