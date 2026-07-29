@@ -18,7 +18,7 @@ type distributedFileReader struct {
 }
 
 func (r *distributedFileReader) hasNextChunk() bool {
-	return r.nextChunkIndex < len(r.chunkFiles)-1
+	return r.nextChunkIndex < len(r.chunkFiles)
 }
 
 func (r *distributedFileReader) advanceReader() error {
@@ -47,42 +47,21 @@ func (r *distributedFileReader) Read(p []byte) (n int, err error) {
 		}
 	}
 
-	//n, err = r.chunkReader.Read(p)
-	//if err == nil {
-	//	// easy case, no error
-	//	return n, nil
-	//}
-	//if err != io.EOF {
-	//	return n, fmt.Errorf("error reading chunk: %w", err)
-	//}
-	//
-	//if !r.hasNextChunk() {
-	//	return n, io.EOF
-	//}
-	//
-	//err = r.advanceReader()
-	//if err != nil {
-	//	return 0, err
-	//}
-
 	remainingBytes := len(p)
 	for remainingBytes > 0 {
 		chunkBytesRead, err := r.chunkReader.Read(p[n:])
 		n += chunkBytesRead
-		if err == io.EOF {
-			if !r.hasNextChunk() {
-				return n, io.EOF
-			}
-			err = r.advanceReader()
-			if err != nil {
-				return 0, err
-			}
-			continue
-		}
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return n, fmt.Errorf("error reading chunk: %w", err)
 		}
 		remainingBytes -= chunkBytesRead
+		if !r.hasNextChunk() {
+			return n, io.EOF
+		}
+		err = r.advanceReader()
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	return n, nil
@@ -131,12 +110,12 @@ func (p *Provider) getChunkPath(key string, chunkIndex int) string {
 func (p *Provider) writeChunk(key string, chunkIndex int, data []byte) error {
 	chunkPath := p.getChunkPath(key, chunkIndex)
 
-	//err := os.MkdirAll(path.Dir(chunkPath), 0755)
-	//if err != nil {
-	//	return err
-	//}
+	err := os.MkdirAll(path.Dir(chunkPath), 0755)
+	if err != nil {
+		return err
+	}
 
-	err := os.WriteFile(chunkPath, data, 0644)
+	err = os.WriteFile(chunkPath, data, 0644)
 	if err != nil {
 		return err
 	}
@@ -158,11 +137,11 @@ func (p *Provider) Save(key string, data io.Reader) error {
 			break
 		}
 		if err != nil {
-			return err
+			return fmt.Errorf("error reading data: %w", err)
 		}
 		err = p.writeChunk(key, chunkIndex, b[:n])
 		if err != nil {
-			return err
+			return fmt.Errorf("error writing chunk %d: %w", chunkIndex, err)
 		}
 		chunkIndex++
 	}
