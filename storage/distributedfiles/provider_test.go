@@ -7,11 +7,20 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/matthiasharzer/discord-drive/storage"
+	"github.com/matthiasharzer/discord-drive/storage/chunk"
+	"github.com/matthiasharzer/discord-drive/storage/chunk/filesystem"
 	"github.com/matthiasharzer/discord-drive/storage/distributedfiles"
 	"github.com/matthiasharzer/discord-drive/util/fsutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func createFilesystemStorageProvider(maxSingleFileSize int64, directory string) storage.Provider {
+	return distributedfiles.NewProvider(maxSingleFileSize, func(key string) chunk.Provider {
+		return filesystem.NewProvider(path.Join(directory, key))
+	})
+}
 
 func TestProvider_Save(t *testing.T) {
 	t.Run("reads a saved file", func(t *testing.T) {
@@ -19,7 +28,7 @@ func TestProvider_Save(t *testing.T) {
 		require.NoError(t, err)
 		defer cleanup()
 
-		provider := distributedfiles.NewProvider(int64(8), directory)
+		provider := createFilesystemStorageProvider(int64(8), directory)
 
 		err = provider.Save("testfile.txt", strings.NewReader("abcdefghijkl"))
 		assert.NoError(t, err)
@@ -38,7 +47,7 @@ func TestProvider_Save(t *testing.T) {
 		require.NoError(t, err)
 		defer cleanup()
 
-		provider := distributedfiles.NewProvider(int64(8), directory)
+		provider := createFilesystemStorageProvider(int64(8), directory)
 
 		err = provider.Save("testfile.txt", strings.NewReader("abcdefghijkl"))
 		assert.NoError(t, err)
