@@ -20,11 +20,13 @@ import (
 var httpPort int
 var httpHost string
 var chunkSize = cobrautils.FlagFileSize{Bytes: 100 * units.MB}
+var directory string
 
 func init() {
-	Command.Flags().IntVarP(&httpPort, "port", "p", 4000, "HTTP server port")
-	Command.Flags().StringVarP(&httpHost, "host", "", "", "HTTP server host (default: all interfaces)")
-	Command.Flags().VarP(&chunkSize, "chunk-size", "", "chunk size")
+	Command.Flags().IntVarP(&httpPort, "port", "p", 4000, "The HTTP server port to listen on")
+	Command.Flags().StringVarP(&httpHost, "host", "", "", "The HTTP server host (default: all interfaces)")
+	Command.Flags().VarP(&chunkSize, "chunk-size", "", "The maximum size of a single file chunk (e.g. 100MB)")
+	Command.Flags().StringVarP(&directory, "directory", "d", ".", "The directory to store files in")
 }
 
 var Command = &cobra.Command{
@@ -42,8 +44,8 @@ var Command = &cobra.Command{
 			_, _ = w.Write([]byte("OK"))
 		})
 
-		storageProvider := distributedfiles.NewProvider(int64(2*units.KiB), func(key string) chunk.Provider {
-			return filesystem.NewProvider(path.Join(".test", "data", key))
+		storageProvider := distributedfiles.NewProvider(chunkSize.Bytes, func(key string) chunk.Provider {
+			return filesystem.NewProvider(path.Join(directory, key))
 		})
 
 		mux.HandleFunc("POST /api/v1/upload/{identifier}", upload.Handler(storageProvider))
