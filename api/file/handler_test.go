@@ -6,10 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/matthiasharzer/discord-drive/api/file"
-	"github.com/matthiasharzer/discord-drive/util/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/matthiasharzer/discord-drive/api/file"
+	"github.com/matthiasharzer/discord-drive/util/testutils"
 )
 
 func TestHandler(t *testing.T) {

@@ -4,12 +4,13 @@ import (
 	"path"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/matthiasharzer/discord-drive/storage"
 	"github.com/matthiasharzer/discord-drive/storage/chunk"
 	"github.com/matthiasharzer/discord-drive/storage/chunk/filesystem"
 	"github.com/matthiasharzer/discord-drive/storage/distributedfiles"
 	"github.com/matthiasharzer/discord-drive/util/fsutils"
-	"github.com/stretchr/testify/require"
 )
 
 func FilesystemStorageProvider(t *testing.T, maxSingleFileSize int64, directory string) storage.Provider {

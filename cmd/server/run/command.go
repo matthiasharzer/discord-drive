@@ -6,7 +6,6 @@ import (
 	"path"
 
 	"github.com/docker/go-units"
-	"github.com/matthiasharzer/discord-drive/util/cobrautils"
 	"github.com/spf13/cobra"
 
 	"github.com/matthiasharzer/discord-drive/api/file"
@@ -15,6 +14,7 @@ import (
 	"github.com/matthiasharzer/discord-drive/storage/chunk"
 	"github.com/matthiasharzer/discord-drive/storage/chunk/filesystem"
 	"github.com/matthiasharzer/discord-drive/storage/distributedfiles"
+	"github.com/matthiasharzer/discord-drive/util/cobrautils"
 )
 
 var httpPort int

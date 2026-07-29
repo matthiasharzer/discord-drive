@@ -7,10 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/matthiasharzer/discord-drive/util/fsutils"
-	"github.com/matthiasharzer/discord-drive/util/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/matthiasharzer/discord-drive/util/fsutils"
+	"github.com/matthiasharzer/discord-drive/util/testutils"
 )
 
 func TestProvider_Save(t *testing.T) {
