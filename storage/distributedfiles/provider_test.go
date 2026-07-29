@@ -30,16 +30,44 @@ func TestProvider_Save(t *testing.T) {
 
 		provider := createFilesystemStorageProvider(int64(8), directory)
 
-		err = provider.Save("testfile.txt", strings.NewReader("abcdefghijkl"))
+		err = provider.Write("testfile.txt", strings.NewReader("abcdefghijkl"))
 		assert.NoError(t, err)
 
-		reader, err := provider.Retrieve("testfile.txt")
+		reader, err := provider.Read("testfile.txt")
 		require.NoError(t, err)
 
 		data, err := io.ReadAll(reader)
 		require.NoError(t, err)
 
 		assert.Equal(t, "abcdefghijkl", string(data))
+	})
+
+	t.Run("reads large saved file", func(t *testing.T) {
+		directory, cleanup, err := fsutils.TemporaryDirectory()
+		require.NoError(t, err)
+		defer cleanup()
+
+		content := `
+Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore
+magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd
+gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing
+elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos
+et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor
+sit amet.
+`
+
+		provider := createFilesystemStorageProvider(int64(8), directory)
+
+		err = provider.Write("testfile.txt", strings.NewReader(content))
+		require.NoError(t, err)
+
+		reader, err := provider.Read("testfile.txt")
+		require.NoError(t, err)
+
+		data, err := io.ReadAll(reader)
+		require.NoError(t, err)
+
+		assert.Equal(t, content, string(data))
 	})
 
 	t.Run("distributes content over multiple files", func(t *testing.T) {
@@ -49,8 +77,8 @@ func TestProvider_Save(t *testing.T) {
 
 		provider := createFilesystemStorageProvider(int64(8), directory)
 
-		err = provider.Save("testfile.txt", strings.NewReader("abcdefghijkl"))
-		assert.NoError(t, err)
+		err = provider.Write("testfile.txt", strings.NewReader("abcdefghijkl"))
+		require.NoError(t, err)
 
 		chunkFiles, err := os.ReadDir(path.Join(directory, "testfile.txt"))
 		require.NoError(t, err)

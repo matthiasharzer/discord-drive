@@ -10,9 +10,11 @@ import (
 )
 
 type distributeChunkReader struct {
-	nextChunkIndex int
-	chunkProvider  chunk.Provider
-	currentReader  io.ReadCloser
+	nextChunkIndex        int
+	chunkSize             int64
+	currentChunkReadBytes int64
+	chunkProvider         chunk.Provider
+	currentReader         io.ReadCloser
 }
 
 func (r *distributeChunkReader) hasNextChunk() bool {
@@ -23,13 +25,20 @@ func (r *distributeChunkReader) advanceReader() error {
 	if !r.hasNextChunk() {
 		return nil
 	}
+	if r.currentReader != nil {
+		err := r.currentReader.Close()
+		if err != nil {
+			return fmt.Errorf("error closing current reader: %w", err)
+		}
+	}
 
 	chunkFile, err := r.chunkProvider.Reader(r.nextChunkIndex)
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting reader for chunk %d: %w", r.nextChunkIndex, err)
 	}
 	r.currentReader = chunkFile
 	r.nextChunkIndex++
+	r.currentChunkReadBytes = 0
 	return nil
 }
 
@@ -48,17 +57,31 @@ func (r *distributeChunkReader) Read(p []byte) (n int, err error) {
 	for remainingBytes > 0 {
 		chunkBytesRead, err := r.currentReader.Read(p[n:])
 		n += chunkBytesRead
-		if err != nil && err != io.EOF {
+		if err == io.EOF {
+			return n, io.EOF
+		}
+		if err != nil {
 			return n, fmt.Errorf("error reading chunk: %w", err)
 		}
 		remainingBytes -= chunkBytesRead
-		if !r.hasNextChunk() {
-			return n, io.EOF
+		r.currentChunkReadBytes += int64(chunkBytesRead)
+
+		if r.currentChunkReadBytes >= r.chunkSize {
+			err = r.advanceReader()
+			if err != nil {
+				return n, err
+			}
 		}
-		err = r.advanceReader()
-		if err != nil {
-			return 0, err
+
+		wantsNextChunk := remainingBytes > 0
+		if !wantsNextChunk {
+			continue
 		}
+	}
+
+	if !r.hasNextChunk() {
+		r.currentReader = nil
+		return n, nil
 	}
 
 	return n, nil
@@ -72,15 +95,15 @@ func (r *distributeChunkReader) Close() error {
 }
 
 type Provider struct {
-	maxSingleFileSize   int64
+	chunkSize           int64
 	createChunkProvider func(key string) chunk.Provider
 	locks               map[string]*sync.RWMutex
 	mu                  *sync.RWMutex
 }
 
-func NewProvider(maxSingleFileSize int64, createChunkProvider func(key string) chunk.Provider) storage.Provider {
+func NewProvider(chunkSize int64, createChunkProvider func(key string) chunk.Provider) storage.Provider {
 	return &Provider{
-		maxSingleFileSize:   maxSingleFileSize,
+		chunkSize:           chunkSize,
 		createChunkProvider: createChunkProvider,
 		locks:               make(map[string]*sync.RWMutex),
 		mu:                  &sync.RWMutex{},
@@ -100,7 +123,7 @@ func (p *Provider) getMutex(name string) *sync.RWMutex {
 	return mu
 }
 
-func (p *Provider) Save(key string, data io.Reader) error {
+func (p *Provider) Write(key string, data io.Reader) error {
 	mu := p.getMutex(key)
 	mu.Lock()
 	defer mu.Unlock()
@@ -108,15 +131,18 @@ func (p *Provider) Save(key string, data io.Reader) error {
 	chunkIndex := 0
 	chunkProvider := p.createChunkProvider(key)
 
-	b := make([]byte, p.maxSingleFileSize)
-	for {
+	b := make([]byte, p.chunkSize)
+	isEOF := false
+	for !isEOF {
 		n, err := data.Read(b)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
+		isEOF = err == io.EOF
+		if err != nil && !isEOF {
 			return fmt.Errorf("error reading data: %w", err)
 		}
+		if n == 0 {
+			break
+		}
+
 		writer, err := chunkProvider.Writer(chunkIndex)
 		if err != nil {
 			return fmt.Errorf("error getting writer for chunk %d: %w", chunkIndex, err)
@@ -132,7 +158,7 @@ func (p *Provider) Save(key string, data io.Reader) error {
 	return nil
 }
 
-func (p *Provider) Retrieve(key string) (io.ReadCloser, error) {
+func (p *Provider) Read(key string) (io.ReadCloser, error) {
 	mu := p.getMutex(key)
 	mu.RLock()
 	defer mu.RUnlock()
@@ -141,5 +167,6 @@ func (p *Provider) Retrieve(key string) (io.ReadCloser, error) {
 
 	return &distributeChunkReader{
 		chunkProvider: chunkProvider,
+		chunkSize:     p.chunkSize,
 	}, nil
 }
