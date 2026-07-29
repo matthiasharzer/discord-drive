@@ -170,3 +170,13 @@ func (p *Provider) Read(key string) (io.ReadCloser, error) {
 		chunkSize:     p.chunkSize,
 	}, nil
 }
+
+func (p *Provider) Has(key string) (bool, error) {
+	mu := p.getMutex(key)
+	mu.RLock()
+	defer mu.RUnlock()
+
+	chunkProvider := p.createChunkProvider(key)
+
+	return chunkProvider.ChunkExists(0), nil
+}
