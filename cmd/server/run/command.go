@@ -13,7 +13,7 @@ import (
 	"github.com/matthiasharzer/discord-drive/logging"
 	"github.com/matthiasharzer/discord-drive/storage/chunk"
 	"github.com/matthiasharzer/discord-drive/storage/chunk/filesystem"
-	"github.com/matthiasharzer/discord-drive/storage/distributedfiles"
+	"github.com/matthiasharzer/discord-drive/storage/distributedfile"
 	"github.com/matthiasharzer/discord-drive/util/cobrautils"
 )
 
@@ -44,7 +44,7 @@ var Command = &cobra.Command{
 			_, _ = w.Write([]byte("OK"))
 		})
 
-		storageProvider := distributedfiles.NewProvider(chunkSize.Bytes, func(key string) chunk.Provider {
+		storageProvider := distributedfile.NewProvider(chunkSize.Bytes, func(key string) chunk.Provider {
 			return filesystem.NewProvider(filepath.Join(directory, key))
 		})
 

@@ -1,4 +1,4 @@
-package distributedfiles
+package distributedfile
 
 import (
 	"fmt"

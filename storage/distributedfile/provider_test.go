@@ -1,4 +1,4 @@
-package distributedfiles_test
+package distributedfile_test
 
 import (
 	"io"
