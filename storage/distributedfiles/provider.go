@@ -53,36 +53,26 @@ func (r *distributeChunkReader) Read(p []byte) (n int, err error) {
 		}
 	}
 
-	// TODO
 	remainingBytes := len(p)
 	for remainingBytes > 0 {
 		chunkBytesRead, err := r.currentReader.Read(p[n:])
 		n += chunkBytesRead
-		if err == io.EOF {
-			return n, io.EOF
-		}
-		if err != nil {
+		r.currentChunkReadBytes += int64(chunkBytesRead)
+		remainingBytes -= chunkBytesRead
+
+		if err != nil && err != io.EOF {
 			return n, fmt.Errorf("error reading chunk: %w", err)
 		}
-		remainingBytes -= chunkBytesRead
-		r.currentChunkReadBytes += int64(chunkBytesRead)
 
-		if r.currentChunkReadBytes >= r.chunkSize {
+		if r.currentChunkReadBytes >= r.chunkSize || chunkBytesRead == 0 {
+			if !r.hasNextChunk() {
+				return n, io.EOF
+			}
 			err = r.advanceReader()
 			if err != nil {
 				return n, err
 			}
 		}
-
-		wantsNextChunk := remainingBytes > 0
-		if !wantsNextChunk {
-			continue
-		}
-	}
-
-	if !r.hasNextChunk() {
-		r.currentReader = nil
-		return n, nil
 	}
 
 	return n, nil
