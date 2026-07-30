@@ -1,7 +1,7 @@
 package testutils
 
 import (
-	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,16 +13,16 @@ import (
 	"github.com/matthiasharzer/discord-drive/util/fsutils"
 )
 
-func FilesystemStorageProvider(t *testing.T, maxSingleFileSize int64, directory string) storage.Provider {
+func FilesystemStorageProvider(t *testing.T, chunkSize int64, directory string) storage.Provider {
 	t.Helper()
-	return distributedfiles.NewProvider(maxSingleFileSize, func(key string) chunk.Provider {
-		return filesystem.NewProvider(path.Join(directory, key))
+	return distributedfiles.NewProvider(chunkSize, func(key string) chunk.Provider {
+		return filesystem.NewProvider(filepath.Join(directory, key))
 	})
 }
 
-func TempDirFilesystemStorageProvider(t *testing.T, maxSingleFileSize int64) (storage.Provider, func()) {
+func TempDirFilesystemStorageProvider(t *testing.T, chunkSize int64) (storage.Provider, func()) {
 	directory, cleanup, err := fsutils.TemporaryDirectory()
 	require.NoError(t, err)
 
-	return FilesystemStorageProvider(t, maxSingleFileSize, directory), cleanup
+	return FilesystemStorageProvider(t, chunkSize, directory), cleanup
 }

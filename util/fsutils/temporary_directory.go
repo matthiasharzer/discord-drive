@@ -3,7 +3,7 @@ package fsutils
 import "os"
 
 func TemporaryDirectory() (string, func(), error) {
-	dir, err := os.MkdirTemp("", "patreon-crawler-test-")
+	dir, err := os.MkdirTemp("", "discord-drive-")
 	if err != nil {
 		return "", nil, err
 	}

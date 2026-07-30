@@ -3,6 +3,8 @@ package file
 import (
 	"io"
 	"net/http"
+	"path/filepath"
+	"strings"
 
 	"github.com/matthiasharzer/discord-drive/storage"
 )
@@ -17,6 +19,11 @@ func Handler(storageProvider storage.Provider) http.HandlerFunc {
 		identifier := r.PathValue("identifier")
 		if identifier == "" {
 			http.Error(w, "missing file identifier", http.StatusBadRequest)
+			return
+		}
+
+		if identifier == "." || identifier == ".." || identifier != filepath.Base(identifier) || strings.ContainsAny(identifier, `/\\`) {
+			http.Error(w, "invalid file identifier", http.StatusBadRequest)
 			return
 		}
 

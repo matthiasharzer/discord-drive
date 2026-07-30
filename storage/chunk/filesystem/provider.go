@@ -3,7 +3,7 @@ package filesystem
 import (
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 
 	"github.com/matthiasharzer/discord-drive/storage/chunk"
@@ -20,13 +20,13 @@ func NewProvider(storageDirectory string) chunk.Provider {
 }
 
 func (p *Provider) getChunkPath(chunkIndex int) string {
-	return path.Join(p.storageDirectory, strconv.Itoa(chunkIndex))
+	return filepath.Join(p.storageDirectory, strconv.Itoa(chunkIndex))
 }
 
 func (p *Provider) Writer(chunkIndex int) (io.WriteCloser, error) {
 	chunkPath := p.getChunkPath(chunkIndex)
 
-	err := os.MkdirAll(path.Dir(chunkPath), 0755)
+	err := os.MkdirAll(filepath.Dir(chunkPath), 0755)
 	if err != nil {
 		return nil, err
 	}

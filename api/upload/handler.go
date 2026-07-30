@@ -2,6 +2,8 @@ package upload
 
 import (
 	"net/http"
+	"path/filepath"
+	"strings"
 
 	"github.com/matthiasharzer/discord-drive/storage"
 
@@ -22,6 +24,12 @@ func Handler(storageProvider storage.Provider) http.HandlerFunc {
 			http.Error(w, "missing file identifier", http.StatusBadRequest)
 			return
 		}
+
+		if identifier == "." || identifier == ".." || identifier != filepath.Base(identifier) || strings.ContainsAny(identifier, `/\\`) {
+			http.Error(w, "invalid file identifier", http.StatusBadRequest)
+			return
+		}
+
 		if r.Body == nil {
 			http.Error(w, "missing request body", http.StatusBadRequest)
 			return

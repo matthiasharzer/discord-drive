@@ -53,6 +53,7 @@ func (r *distributeChunkReader) Read(p []byte) (n int, err error) {
 		}
 	}
 
+	// TODO
 	remainingBytes := len(p)
 	for remainingBytes > 0 {
 		chunkBytesRead, err := r.currentReader.Read(p[n:])
@@ -111,15 +112,15 @@ func NewProvider(chunkSize int64, createChunkProvider func(key string) chunk.Pro
 }
 
 func (p *Provider) getMutex(name string) *sync.RWMutex {
-	p.mu.RLock()
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	mu, ok := p.locks[name]
-	p.mu.RUnlock()
+
 	if !ok {
 		mu = new(sync.RWMutex)
-		p.mu.Lock()
 		p.locks[name] = mu
-		p.mu.Unlock()
 	}
+
 	return mu
 }
 
@@ -148,6 +149,10 @@ func (p *Provider) Write(key string, data io.Reader) error {
 			return fmt.Errorf("error getting writer for chunk %d: %w", chunkIndex, err)
 		}
 		_, err = writer.Write(b[:n])
+		closeErr := writer.Close()
+		if closeErr != nil {
+			return fmt.Errorf("error closing writer for chunk %d: %w", chunkIndex, closeErr)
+		}
 		if err != nil {
 			return fmt.Errorf("error writing chunk %d: %w", chunkIndex, err)
 		}

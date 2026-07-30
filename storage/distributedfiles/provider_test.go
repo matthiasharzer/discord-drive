@@ -3,7 +3,7 @@ package distributedfiles_test
 import (
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -24,6 +24,10 @@ func TestProvider_Save(t *testing.T) {
 
 		reader, err := provider.Read("testfile.txt")
 		require.NoError(t, err)
+		defer func() {
+			err := reader.Close()
+			require.NoError(t, err)
+		}()
 
 		data, err := io.ReadAll(reader)
 		require.NoError(t, err)
@@ -49,6 +53,10 @@ sit amet.
 
 		reader, err := provider.Read("testfile.txt")
 		require.NoError(t, err)
+		defer func() {
+			err := reader.Close()
+			require.NoError(t, err)
+		}()
 
 		data, err := io.ReadAll(reader)
 		require.NoError(t, err)
@@ -66,14 +74,14 @@ sit amet.
 		err = provider.Write("testfile.txt", strings.NewReader("abcdefghijkl"))
 		require.NoError(t, err)
 
-		chunkFiles, err := os.ReadDir(path.Join(directory, "testfile.txt"))
+		chunkFiles, err := os.ReadDir(filepath.Join(directory, "testfile.txt"))
 		require.NoError(t, err)
 
 		require.Equal(t, 2, len(chunkFiles))
 
-		file1Bytes, err := os.ReadFile(path.Join(directory, "testfile.txt", chunkFiles[0].Name()))
+		file1Bytes, err := os.ReadFile(filepath.Join(directory, "testfile.txt", chunkFiles[0].Name()))
 		assert.NoError(t, err)
-		file2Bytes, err := os.ReadFile(path.Join(directory, "testfile.txt", chunkFiles[1].Name()))
+		file2Bytes, err := os.ReadFile(filepath.Join(directory, "testfile.txt", chunkFiles[1].Name()))
 		assert.NoError(t, err)
 
 		assert.Equal(t, "abcdefgh", string(file1Bytes))

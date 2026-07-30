@@ -3,7 +3,7 @@ package run
 import (
 	"fmt"
 	"net/http"
-	"path"
+	"path/filepath"
 
 	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
@@ -45,7 +45,7 @@ var Command = &cobra.Command{
 		})
 
 		storageProvider := distributedfiles.NewProvider(chunkSize.Bytes, func(key string) chunk.Provider {
-			return filesystem.NewProvider(path.Join(directory, key))
+			return filesystem.NewProvider(filepath.Join(directory, key))
 		})
 
 		mux.HandleFunc("POST /api/v1/upload/{identifier}", upload.Handler(storageProvider))
