@@ -9,13 +9,13 @@ import (
 	"github.com/matthiasharzer/discord-drive/storage"
 	"github.com/matthiasharzer/discord-drive/storage/chunk"
 	"github.com/matthiasharzer/discord-drive/storage/chunk/filesystem"
-	"github.com/matthiasharzer/discord-drive/storage/distributedfiles"
+	"github.com/matthiasharzer/discord-drive/storage/distributedfile"
 	"github.com/matthiasharzer/discord-drive/util/fsutils"
 )
 
 func FilesystemStorageProvider(t *testing.T, chunkSize int64, directory string) storage.Provider {
 	t.Helper()
-	return distributedfiles.NewProvider(chunkSize, func(key string) chunk.Provider {
+	return distributedfile.NewProvider(chunkSize, func(key string) chunk.Provider {
 		return filesystem.NewProvider(filepath.Join(directory, key))
 	})
 }

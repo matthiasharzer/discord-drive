@@ -1,4 +1,4 @@
-package distributedfiles_test
+package distributedfile_test
 
 import (
 	"io"
@@ -15,11 +15,11 @@ import (
 )
 
 func TestProvider_Save(t *testing.T) {
-	t.Run("reads a saved file", func(t *testing.T) {
-		provider, cleanup := testutils.TempDirFilesystemStorageProvider(t, int64(8))
+	t.Run("reads a clean divided file", func(t *testing.T) {
+		provider, cleanup := testutils.TempDirFilesystemStorageProvider(t, int64(4))
 		defer cleanup()
 
-		err := provider.Write("testfile.txt", strings.NewReader("abcdefghijkl"))
+		err := provider.Write("testfile.txt", strings.NewReader("abcdefghijkl")) // 12 byte = 3 chunks
 		assert.NoError(t, err)
 
 		reader, err := provider.Read("testfile.txt")
@@ -33,6 +33,46 @@ func TestProvider_Save(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "abcdefghijkl", string(data))
+	})
+
+	t.Run("reads a clean divided file with an almost full chunk", func(t *testing.T) {
+		provider, cleanup := testutils.TempDirFilesystemStorageProvider(t, int64(4))
+		defer cleanup()
+
+		err := provider.Write("testfile.txt", strings.NewReader("abcdefghijk")) // 11 byte = 3 chunks; last chunk has only 3 bytes
+		assert.NoError(t, err)
+
+		reader, err := provider.Read("testfile.txt")
+		require.NoError(t, err)
+		defer func() {
+			err := reader.Close()
+			require.NoError(t, err)
+		}()
+
+		data, err := io.ReadAll(reader)
+		require.NoError(t, err)
+
+		assert.Equal(t, "abcdefghijk", string(data))
+	})
+
+	t.Run("reads a clean divided file with an almost empty chunk", func(t *testing.T) {
+		provider, cleanup := testutils.TempDirFilesystemStorageProvider(t, int64(4))
+		defer cleanup()
+
+		err := provider.Write("testfile.txt", strings.NewReader("abcdefghijklm")) // 13 byte = 4 chunks; last chunk has only 1 byte
+		assert.NoError(t, err)
+
+		reader, err := provider.Read("testfile.txt")
+		require.NoError(t, err)
+		defer func() {
+			err := reader.Close()
+			require.NoError(t, err)
+		}()
+
+		data, err := io.ReadAll(reader)
+		require.NoError(t, err)
+
+		assert.Equal(t, "abcdefghijklm", string(data))
 	})
 
 	t.Run("reads large saved file", func(t *testing.T) {

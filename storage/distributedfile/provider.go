@@ -1,9 +1,11 @@
-package distributedfiles
+package distributedfile
 
 import (
 	"fmt"
 	"io"
 	"sync"
+
+	"github.com/docker/go-units"
 
 	"github.com/matthiasharzer/discord-drive/storage"
 	"github.com/matthiasharzer/discord-drive/storage/chunk"
@@ -122,10 +124,19 @@ func (p *Provider) Write(key string, data io.Reader) error {
 	chunkIndex := 0
 	chunkProvider := p.createChunkProvider(key)
 
-	b := make([]byte, p.chunkSize)
+	currentChunkBytesRead := int64(0)
+	currentChunkWriter, err := chunkProvider.Writer(chunkIndex)
+	if err != nil {
+		return fmt.Errorf("error getting writer for chunk %d: %w", chunkIndex, err)
+	}
+
+	bufferSize := min(p.chunkSize, 100*units.KiB)
+	b := make([]byte, bufferSize)
 	isEOF := false
+
 	for !isEOF {
 		n, err := data.Read(b)
+		currentChunkBytesRead += int64(n)
 		isEOF = err == io.EOF
 		if err != nil && !isEOF {
 			return fmt.Errorf("error reading data: %w", err)
@@ -134,20 +145,61 @@ func (p *Provider) Write(key string, data io.Reader) error {
 			break
 		}
 
-		writer, err := chunkProvider.Writer(chunkIndex)
-		if err != nil {
-			return fmt.Errorf("error getting writer for chunk %d: %w", chunkIndex, err)
+		remainingBytesToReadInChunk := p.chunkSize - currentChunkBytesRead
+		if remainingBytesToReadInChunk > 0 {
+			_, err = currentChunkWriter.Write(b[:n])
+			if err != nil {
+				return fmt.Errorf("error writing chunk %d: %w", chunkIndex, err)
+			}
+			continue
 		}
-		_, err = writer.Write(b[:n])
-		closeErr := writer.Close()
-		if closeErr != nil {
-			return fmt.Errorf("error closing writer for chunk %d: %w", chunkIndex, closeErr)
+
+		bytesToWriteIntoCurrentChunk := int64(n) + remainingBytesToReadInChunk
+		if bytesToWriteIntoCurrentChunk > 0 {
+			_, err = currentChunkWriter.Write(b[:bytesToWriteIntoCurrentChunk])
+			if err != nil {
+				return fmt.Errorf("error writing chunk %d: %w", chunkIndex, err)
+			}
+			currentChunkBytesRead = 0
 		}
+
+		err = currentChunkWriter.Close()
 		if err != nil {
-			return fmt.Errorf("error writing chunk %d: %w", chunkIndex, err)
+			return fmt.Errorf("error closing writer for chunk %d: %w", chunkIndex, err)
 		}
 
 		chunkIndex++
+		currentChunkWriter, err = chunkProvider.Writer(chunkIndex)
+		if err != nil {
+			return fmt.Errorf("error getting writer for chunk %d: %w", chunkIndex, err)
+		}
+		if int64(n) > bytesToWriteIntoCurrentChunk {
+			_, err = currentChunkWriter.Write(b[bytesToWriteIntoCurrentChunk:n])
+			if err != nil {
+				return fmt.Errorf("error writing chunk %d: %w", chunkIndex, err)
+			}
+		}
+		//continue
+
+		//writer, err := chunkProvider.Writer(chunkIndex)
+		//if err != nil {
+		//	return fmt.Errorf("error getting writer for chunk %d: %w", chunkIndex, err)
+		//}
+		//_, err = writer.Write(b[:n])
+		//closeErr := writer.Close()
+		//if closeErr != nil {
+		//	return fmt.Errorf("error closing writer for chunk %d: %w", chunkIndex, closeErr)
+		//}
+		//if err != nil {
+		//	return fmt.Errorf("error writing chunk %d: %w", chunkIndex, err)
+		//}
+
+		//chunkIndex++
+	}
+
+	err = currentChunkWriter.Close()
+	if err != nil {
+		return fmt.Errorf("error closing writer for chunk %d: %w", chunkIndex, err)
 	}
 
 	return nil
