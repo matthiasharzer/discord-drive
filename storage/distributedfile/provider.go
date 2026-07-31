@@ -179,22 +179,6 @@ func (p *Provider) Write(key string, data io.Reader) error {
 				return fmt.Errorf("error writing chunk %d: %w", chunkIndex, err)
 			}
 		}
-		//continue
-
-		//writer, err := chunkProvider.Writer(chunkIndex)
-		//if err != nil {
-		//	return fmt.Errorf("error getting writer for chunk %d: %w", chunkIndex, err)
-		//}
-		//_, err = writer.Write(b[:n])
-		//closeErr := writer.Close()
-		//if closeErr != nil {
-		//	return fmt.Errorf("error closing writer for chunk %d: %w", chunkIndex, closeErr)
-		//}
-		//if err != nil {
-		//	return fmt.Errorf("error writing chunk %d: %w", chunkIndex, err)
-		//}
-
-		//chunkIndex++
 	}
 
 	err = currentChunkWriter.Close()
