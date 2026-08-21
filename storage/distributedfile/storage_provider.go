@@ -140,6 +140,11 @@ func (p *StorageProvider) Write(key string, data io.Reader) error {
 		return fmt.Errorf("error creating chunk provider for key %s: %w", key, err)
 	}
 
+	err = chunkProvider.DeleteChunks()
+	if err != nil {
+		return fmt.Errorf("error deleting existing chunks for key %s: %w", key, err)
+	}
+
 	currentChunkBytesRead := int64(0)
 	currentChunkWriter, err := chunkProvider.Writer(chunkIndex)
 	if err != nil {

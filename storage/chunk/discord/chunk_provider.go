@@ -3,11 +3,11 @@ package discord
 import (
 	"fmt"
 	"io"
-	"log"
 	"strconv"
 	"sync"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/matthiasharzer/discord-drive/logging"
 	"github.com/matthiasharzer/discord-drive/storage/chunk"
 )
 
@@ -70,13 +70,13 @@ func (p *ChunkProvider) Writer(chunkIndex int) (io.WriteCloser, error) {
 		defer func() {
 			err := pr.Close()
 			if err != nil {
-				log.Printf("Error closing pipe reader: %v", err)
+				logging.Error("error closing pipe reader", "err", err)
 			}
 		}()
 
 		message, err := p.client.ChannelFileSend(p.channelID, chunkIndexStr, pr)
 		if err != nil {
-			log.Printf("Error sending file to Discord channel: %v", err)
+			logging.Error("error sending file to Discord channel", "err", err)
 		}
 
 		p.mu.Lock()
@@ -140,5 +140,33 @@ func (p *ChunkProvider) Close() error {
 	if p.client != nil {
 		return p.client.Close()
 	}
+	return nil
+}
+
+func (p *ChunkProvider) DeleteChunks() error {
+	if len(p.messageIDLookup) == 0 {
+		err := p.fetchMessages()
+		if err != nil {
+			return fmt.Errorf("error fetching messages: %w", err)
+		}
+	}
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	var messageIDs []string
+
+	for _, messageID := range p.messageIDLookup {
+		messageIDs = append(messageIDs, messageID)
+	}
+
+	err := p.client.ChannelMessagesBulkDelete(p.channelID, messageIDs)
+	if err != nil {
+		return fmt.Errorf("error deleting messages: %w", err)
+	}
+
+	p.messageIDLookup = make(map[int]string)
+	p.latestMessageID = ""
+
 	return nil
 }

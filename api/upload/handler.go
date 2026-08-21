@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/matthiasharzer/discord-drive/logging"
 	"github.com/matthiasharzer/discord-drive/storage"
 
 	"github.com/docker/go-units"
@@ -42,6 +43,7 @@ func Handler(storageProvider storage.Provider) http.HandlerFunc {
 
 		err := storageProvider.Write(identifier, limitedReader)
 		if err != nil {
+			logging.Error("failed to store file", "err", err)
 			http.Error(w, "failed to store file", http.StatusInternalServerError)
 			return
 		}

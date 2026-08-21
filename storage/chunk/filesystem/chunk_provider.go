@@ -54,3 +54,12 @@ func (p *ChunkProvider) ChunkExists(chunkIndex int) (bool, error) {
 	_, err := os.Stat(chunkPath)
 	return !os.IsNotExist(err), nil
 }
+
+func (p *ChunkProvider) DeleteChunks() error {
+	err := os.RemoveAll(p.storageDirectory)
+	if err != nil {
+		return err
+	}
+
+	return os.MkdirAll(p.storageDirectory, 0755)
+}
