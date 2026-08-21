@@ -93,6 +93,7 @@ func NewStorageProvider(discordBotToken string, storageChannelID string) (storag
 
 	err = context.fetchThreads()
 	if err != nil {
+		_ = dg.Close()
 		return nil, fmt.Errorf("error fetching threads: %w", err)
 	}
 
@@ -123,5 +124,13 @@ func (s *StorageProvider) Read(key string) (io.ReadCloser, error) {
 	return s.distributedFileProvider.Read(key)
 }
 func (s *StorageProvider) Has(key string) (bool, error) {
-	return s.distributedFileProvider.Has(key)
+	s.context.mu.Lock()
+	defer s.context.mu.Unlock()
+
+	_, exists := s.context.threads[key]
+	if exists {
+		return true, nil
+	}
+	// assuming we are the only one writing to the storage, if the thread does not exist in the local cache, we can assume the file does not exist
+	return false, nil
 }

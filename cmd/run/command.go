@@ -40,6 +40,12 @@ var Command = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to create discord storage provider: %w", err)
 		}
+		defer func() {
+			err := storageProvider.Close()
+			if err != nil {
+				logging.Error("error while closing storage provider", "err", err)
+			}
+		}()
 
 		mux := api.GetMux(storageProvider)
 

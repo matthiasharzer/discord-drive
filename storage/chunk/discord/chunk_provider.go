@@ -16,7 +16,7 @@ type ChunkProvider struct {
 	channelID       string
 	messageIDLookup map[int]string
 	latestMessageID string
-	mu              *sync.RWMutex
+	mu              *sync.Mutex
 }
 
 func NewProvider(client *discordgo.Session, channelID string) chunk.Provider {
@@ -24,15 +24,13 @@ func NewProvider(client *discordgo.Session, channelID string) chunk.Provider {
 		client:          client,
 		channelID:       channelID,
 		messageIDLookup: make(map[int]string),
-		mu:              &sync.RWMutex{},
+		mu:              &sync.Mutex{},
 	}
 }
 
 func (p *ChunkProvider) fetchMessages() error {
 	numberOfMessages := 100
 	hasMore := true
-	p.mu.Lock()
-	defer p.mu.Unlock()
 
 	for hasMore {
 		messages, err := p.client.ChannelMessages(p.channelID, numberOfMessages, p.latestMessageID, "", "")
@@ -77,6 +75,7 @@ func (p *ChunkProvider) Writer(chunkIndex int) (io.WriteCloser, error) {
 		message, err := p.client.ChannelFileSend(p.channelID, chunkIndexStr, pr)
 		if err != nil {
 			logging.Error("error sending file to Discord channel", "err", err)
+			return
 		}
 
 		p.mu.Lock()
@@ -88,15 +87,15 @@ func (p *ChunkProvider) Writer(chunkIndex int) (io.WriteCloser, error) {
 }
 
 func (p *ChunkProvider) Reader(chunkIndex int) (io.ReadCloser, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if len(p.messageIDLookup) == 0 {
 		err := p.fetchMessages()
 		if err != nil {
 			return nil, fmt.Errorf("error fetching messages: %w", err)
 		}
 	}
-
-	p.mu.RLock()
-	defer p.mu.RUnlock()
 
 	messageID, exists := p.messageIDLookup[chunkIndex]
 	if !exists {
@@ -122,15 +121,15 @@ func (p *ChunkProvider) Reader(chunkIndex int) (io.ReadCloser, error) {
 }
 
 func (p *ChunkProvider) ChunkExists(chunkIndex int) (bool, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if len(p.messageIDLookup) == 0 {
 		err := p.fetchMessages()
 		if err != nil {
 			return false, fmt.Errorf("error fetching messages: %w", err)
 		}
 	}
-
-	p.mu.RLock()
-	defer p.mu.RUnlock()
 
 	_, exists := p.messageIDLookup[chunkIndex]
 	return exists, nil
@@ -144,6 +143,9 @@ func (p *ChunkProvider) Close() error {
 }
 
 func (p *ChunkProvider) DeleteChunks() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	if len(p.messageIDLookup) == 0 {
 		err := p.fetchMessages()
 		if err != nil {
@@ -151,11 +153,7 @@ func (p *ChunkProvider) DeleteChunks() error {
 		}
 	}
 
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
 	var messageIDs []string
-
 	for _, messageID := range p.messageIDLookup {
 		messageIDs = append(messageIDs, messageID)
 	}

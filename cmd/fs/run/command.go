@@ -40,6 +40,12 @@ var Command = &cobra.Command{
 		storageProvider := distributedfile.NewStorageProvider(chunkSize.Bytes, func(key string) (chunk.Provider, error) {
 			return filesystem.NewChunkProvider(filepath.Join(directory, key)), nil
 		})
+		defer func() {
+			err := storageProvider.Close()
+			if err != nil {
+				logging.Error("error while closing storage provider", "err", err)
+			}
+		}()
 
 		mux := api.GetMux(storageProvider)
 
