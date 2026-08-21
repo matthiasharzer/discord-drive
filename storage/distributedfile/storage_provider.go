@@ -100,15 +100,15 @@ func (r *distributeChunkReader) Close() error {
 
 type CreateChunkProviderFunc = func(key string) (chunk.Provider, error)
 
-type Provider struct {
+type StorageProvider struct {
 	chunkSize           int64
 	createChunkProvider CreateChunkProviderFunc
 	locks               map[string]*sync.RWMutex
 	mu                  *sync.RWMutex
 }
 
-func NewProvider(chunkSize int64, createChunkProvider CreateChunkProviderFunc) storage.Provider {
-	return &Provider{
+func NewStorageProvider(chunkSize int64, createChunkProvider CreateChunkProviderFunc) storage.Provider {
+	return &StorageProvider{
 		chunkSize:           chunkSize,
 		createChunkProvider: createChunkProvider,
 		locks:               make(map[string]*sync.RWMutex),
@@ -116,7 +116,7 @@ func NewProvider(chunkSize int64, createChunkProvider CreateChunkProviderFunc) s
 	}
 }
 
-func (p *Provider) getMutex(name string) *sync.RWMutex {
+func (p *StorageProvider) getMutex(name string) *sync.RWMutex {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	mu, ok := p.locks[name]
@@ -129,7 +129,7 @@ func (p *Provider) getMutex(name string) *sync.RWMutex {
 	return mu
 }
 
-func (p *Provider) Write(key string, data io.Reader) error {
+func (p *StorageProvider) Write(key string, data io.Reader) error {
 	mu := p.getMutex(key)
 	mu.Lock()
 	defer mu.Unlock()
@@ -205,7 +205,7 @@ func (p *Provider) Write(key string, data io.Reader) error {
 	return nil
 }
 
-func (p *Provider) Read(key string) (io.ReadCloser, error) {
+func (p *StorageProvider) Read(key string) (io.ReadCloser, error) {
 	mu := p.getMutex(key)
 	mu.RLock()
 	defer mu.RUnlock()
@@ -221,7 +221,7 @@ func (p *Provider) Read(key string) (io.ReadCloser, error) {
 	}, nil
 }
 
-func (p *Provider) Has(key string) (bool, error) {
+func (p *StorageProvider) Has(key string) (bool, error) {
 	mu := p.getMutex(key)
 	mu.RLock()
 	defer mu.RUnlock()
@@ -234,6 +234,6 @@ func (p *Provider) Has(key string) (bool, error) {
 	return chunkProvider.ChunkExists(0)
 }
 
-func (p *Provider) Close() error {
+func (p *StorageProvider) Close() error {
 	return nil
 }

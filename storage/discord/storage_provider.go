@@ -97,7 +97,7 @@ func NewStorageProvider(discordBotToken string, storageChannelID string) (storag
 
 	return &StorageProvider{
 		context:                 context,
-		distributedFileProvider: distributedfile.NewProvider(discordChunkSize, context.createChunkProviderFunc()),
+		distributedFileProvider: distributedfile.NewStorageProvider(discordChunkSize, context.createChunkProviderFunc()),
 	}, nil
 }
 

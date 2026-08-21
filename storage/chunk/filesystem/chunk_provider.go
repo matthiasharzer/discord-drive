@@ -9,21 +9,21 @@ import (
 	"github.com/matthiasharzer/discord-drive/storage/chunk"
 )
 
-type Provider struct {
+type ChunkProvider struct {
 	storageDirectory string
 }
 
-func NewProvider(storageDirectory string) chunk.Provider {
-	return &Provider{
+func NewChunkProvider(storageDirectory string) chunk.Provider {
+	return &ChunkProvider{
 		storageDirectory: storageDirectory,
 	}
 }
 
-func (p *Provider) getChunkPath(chunkIndex int) string {
+func (p *ChunkProvider) getChunkPath(chunkIndex int) string {
 	return filepath.Join(p.storageDirectory, strconv.Itoa(chunkIndex))
 }
 
-func (p *Provider) Writer(chunkIndex int) (io.WriteCloser, error) {
+func (p *ChunkProvider) Writer(chunkIndex int) (io.WriteCloser, error) {
 	chunkPath := p.getChunkPath(chunkIndex)
 
 	err := os.MkdirAll(filepath.Dir(chunkPath), 0755)
@@ -38,7 +38,7 @@ func (p *Provider) Writer(chunkIndex int) (io.WriteCloser, error) {
 
 	return file, nil
 }
-func (p *Provider) Reader(chunkIndex int) (io.ReadCloser, error) {
+func (p *ChunkProvider) Reader(chunkIndex int) (io.ReadCloser, error) {
 	chunkPath := p.getChunkPath(chunkIndex)
 
 	file, err := os.OpenFile(chunkPath, os.O_RDONLY, 0644)
@@ -49,7 +49,7 @@ func (p *Provider) Reader(chunkIndex int) (io.ReadCloser, error) {
 	return file, nil
 }
 
-func (p *Provider) ChunkExists(chunkIndex int) (bool, error) {
+func (p *ChunkProvider) ChunkExists(chunkIndex int) (bool, error) {
 	chunkPath := p.getChunkPath(chunkIndex)
 	_, err := os.Stat(chunkPath)
 	return !os.IsNotExist(err), nil
