@@ -13,7 +13,7 @@ import (
 	"github.com/matthiasharzer/discord-drive/storage/distributedfile"
 )
 
-const discordChunkSize = 19 * units.MiB // The limit is 20MB, but we leave some room for metadata and overhead
+const discordChunkSize = 9 * units.MiB // The limit is 10MB, but we leave some room for metadata and overhead
 
 type storageProviderContext struct {
 	client           *discordgo.Session
