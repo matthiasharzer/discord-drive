@@ -15,8 +15,8 @@ import (
 
 func FilesystemStorageProvider(t *testing.T, chunkSize int64, directory string) storage.Provider {
 	t.Helper()
-	return distributedfile.NewProvider(chunkSize, func(key string) chunk.Provider {
-		return filesystem.NewProvider(filepath.Join(directory, key))
+	return distributedfile.NewStorageProvider(chunkSize, func(key string) (chunk.Provider, error) {
+		return filesystem.NewChunkProvider(filepath.Join(directory, key)), nil
 	})
 }
 
