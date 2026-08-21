@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/matthiasharzer/discord-drive/cmd/server"
+	"github.com/matthiasharzer/discord-drive/cmd/fs"
+	"github.com/matthiasharzer/discord-drive/cmd/run"
 	"github.com/matthiasharzer/discord-drive/cmd/version"
 
 	"github.com/spf13/cobra"
@@ -19,7 +20,8 @@ var rootCommand = &cobra.Command{
 
 func init() {
 	rootCommand.AddCommand(version.Command)
-	rootCommand.AddCommand(server.Command)
+	rootCommand.AddCommand(fs.Command)
+	rootCommand.AddCommand(run.Command)
 }
 
 func main() {
