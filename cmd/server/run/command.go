@@ -52,7 +52,7 @@ var Command = &cobra.Command{
 		mux.HandleFunc("GET /api/v1/file/{identifier}", file.Handler(storageProvider))
 
 		addr := fmt.Sprintf("%s:%d", httpHost, httpPort)
-		logging.Info("starting sync-watch-server", "host", httpHost, "port", httpPort)
+		logging.Info("starting discord-drive", "host", httpHost, "port", httpPort)
 		err := http.ListenAndServe(
 			addr,
 			mux,
