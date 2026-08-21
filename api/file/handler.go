@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/matthiasharzer/discord-drive/logging"
 	"github.com/matthiasharzer/discord-drive/storage"
 )
 
@@ -29,6 +30,7 @@ func Handler(storageProvider storage.Provider) http.HandlerFunc {
 
 		exists, err := storageProvider.Has(identifier)
 		if err != nil {
+			logging.Error("failed to check if file exists", "err", err)
 			http.Error(w, "failed to retrieve file", http.StatusInternalServerError)
 			return
 		}
@@ -39,6 +41,7 @@ func Handler(storageProvider storage.Provider) http.HandlerFunc {
 
 		reader, err := storageProvider.Read(identifier)
 		if err != nil {
+			logging.Error("failed to retrieve file", "err", err)
 			http.Error(w, "failed to retrieve file", http.StatusInternalServerError)
 			return
 		}
@@ -48,6 +51,7 @@ func Handler(storageProvider storage.Provider) http.HandlerFunc {
 
 		_, err = io.Copy(w, reader)
 		if err != nil {
+			logging.Error("failed to copy file data", "err", err)
 			http.Error(w, "failed to retrieve file", http.StatusInternalServerError)
 			return
 		}

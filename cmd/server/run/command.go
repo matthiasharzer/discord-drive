@@ -3,18 +3,15 @@ package run
 import (
 	"fmt"
 	"net/http"
-	"path/filepath"
+	"os"
 
 	"github.com/docker/go-units"
-	"github.com/spf13/cobra"
-
 	"github.com/matthiasharzer/discord-drive/api/file"
 	"github.com/matthiasharzer/discord-drive/api/upload"
 	"github.com/matthiasharzer/discord-drive/logging"
-	"github.com/matthiasharzer/discord-drive/storage/chunk"
-	"github.com/matthiasharzer/discord-drive/storage/chunk/filesystem"
-	"github.com/matthiasharzer/discord-drive/storage/distributedfile"
+	"github.com/matthiasharzer/discord-drive/storage/discord"
 	"github.com/matthiasharzer/discord-drive/util/cobrautils"
+	"github.com/spf13/cobra"
 )
 
 var httpPort int
@@ -38,22 +35,32 @@ var Command = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		discordToken := os.Getenv("DISCORD_BOT_TOKEN")
+		if discordToken == "" {
+			return fmt.Errorf("DISCORD_BOT_TOKEN environment variable is not set")
+		}
+
+		storageProvider, err := discord.NewStorageProvider(discordToken, "1540364209009860719")
+		if err != nil {
+			return fmt.Errorf("failed to create discord storage provider: %w", err)
+		}
+
 		mux := http.NewServeMux()
 		mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("OK"))
 		})
 
-		storageProvider := distributedfile.NewProvider(chunkSize.Bytes, func(key string) chunk.Provider {
-			return filesystem.NewProvider(filepath.Join(directory, key))
-		})
+		//storageProvider := distributedfile.NewProvider(chunkSize.Bytes, func(key string) chunk.Provider {
+		//	return filesystem.NewProvider(filepath.Join(directory, key))
+		//})
 
 		mux.HandleFunc("POST /api/v1/upload/{identifier}", upload.Handler(storageProvider))
 		mux.HandleFunc("GET /api/v1/file/{identifier}", file.Handler(storageProvider))
 
 		addr := fmt.Sprintf("%s:%d", httpHost, httpPort)
 		logging.Info("starting sync-watch-server", "host", httpHost, "port", httpPort)
-		err := http.ListenAndServe(
+		err = http.ListenAndServe(
 			addr,
 			mux,
 		)

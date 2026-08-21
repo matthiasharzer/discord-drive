@@ -49,8 +49,8 @@ func (p *Provider) Reader(chunkIndex int) (io.ReadCloser, error) {
 	return file, nil
 }
 
-func (p *Provider) ChunkExists(chunkIndex int) bool {
+func (p *Provider) ChunkExists(chunkIndex int) (bool, error) {
 	chunkPath := p.getChunkPath(chunkIndex)
 	_, err := os.Stat(chunkPath)
-	return !os.IsNotExist(err)
+	return !os.IsNotExist(err), nil
 }

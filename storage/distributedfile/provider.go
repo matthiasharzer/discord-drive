@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/docker/go-units"
-
 	"github.com/matthiasharzer/discord-drive/storage"
 	"github.com/matthiasharzer/discord-drive/storage/chunk"
 )
@@ -19,12 +18,16 @@ type distributeChunkReader struct {
 	currentReader         io.ReadCloser
 }
 
-func (r *distributeChunkReader) hasNextChunk() bool {
+func (r *distributeChunkReader) hasNextChunk() (bool, error) {
 	return r.chunkProvider.ChunkExists(r.nextChunkIndex)
 }
 
 func (r *distributeChunkReader) advanceReader() error {
-	if !r.hasNextChunk() {
+	hasNextChunk, err := r.hasNextChunk()
+	if err != nil {
+		return fmt.Errorf("error checking for next chunk: %w", err)
+	}
+	if !hasNextChunk {
 		return nil
 	}
 	if r.currentReader != nil {
@@ -46,10 +49,14 @@ func (r *distributeChunkReader) advanceReader() error {
 
 func (r *distributeChunkReader) Read(p []byte) (n int, err error) {
 	if r.currentReader == nil {
-		if !r.hasNextChunk() {
+		hasNextChunk, err := r.hasNextChunk()
+		if err != nil {
+			return 0, fmt.Errorf("error checking for next chunk: %w", err)
+		}
+		if !hasNextChunk {
 			return 0, io.EOF
 		}
-		err := r.advanceReader()
+		err = r.advanceReader()
 		if err != nil {
 			return 0, err
 		}
@@ -67,7 +74,11 @@ func (r *distributeChunkReader) Read(p []byte) (n int, err error) {
 		}
 
 		if r.currentChunkReadBytes >= r.chunkSize || chunkBytesRead == 0 {
-			if !r.hasNextChunk() {
+			hasNextChunk, err := r.hasNextChunk()
+			if err != nil {
+				return n, fmt.Errorf("error checking for next chunk: %w", err)
+			}
+			if !hasNextChunk {
 				return n, io.EOF
 			}
 			err = r.advanceReader()
@@ -87,14 +98,16 @@ func (r *distributeChunkReader) Close() error {
 	return r.currentReader.Close()
 }
 
+type CreateChunkProviderFunc = func(key string) (chunk.Provider, error)
+
 type Provider struct {
 	chunkSize           int64
-	createChunkProvider func(key string) chunk.Provider
+	createChunkProvider CreateChunkProviderFunc
 	locks               map[string]*sync.RWMutex
 	mu                  *sync.RWMutex
 }
 
-func NewProvider(chunkSize int64, createChunkProvider func(key string) chunk.Provider) storage.Provider {
+func NewProvider(chunkSize int64, createChunkProvider CreateChunkProviderFunc) storage.Provider {
 	return &Provider{
 		chunkSize:           chunkSize,
 		createChunkProvider: createChunkProvider,
@@ -122,7 +135,10 @@ func (p *Provider) Write(key string, data io.Reader) error {
 	defer mu.Unlock()
 
 	chunkIndex := 0
-	chunkProvider := p.createChunkProvider(key)
+	chunkProvider, err := p.createChunkProvider(key)
+	if err != nil {
+		return fmt.Errorf("error creating chunk provider for key %s: %w", key, err)
+	}
 
 	currentChunkBytesRead := int64(0)
 	currentChunkWriter, err := chunkProvider.Writer(chunkIndex)
@@ -194,7 +210,10 @@ func (p *Provider) Read(key string) (io.ReadCloser, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	chunkProvider := p.createChunkProvider(key)
+	chunkProvider, err := p.createChunkProvider(key)
+	if err != nil {
+		return nil, fmt.Errorf("error creating chunk provider for key %s: %w", key, err)
+	}
 
 	return &distributeChunkReader{
 		chunkProvider: chunkProvider,
@@ -207,7 +226,14 @@ func (p *Provider) Has(key string) (bool, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	chunkProvider := p.createChunkProvider(key)
+	chunkProvider, err := p.createChunkProvider(key)
+	if err != nil {
+		return false, fmt.Errorf("error creating chunk provider for key %s: %w", key, err)
+	}
 
-	return chunkProvider.ChunkExists(0), nil
+	return chunkProvider.ChunkExists(0)
+}
+
+func (p *Provider) Close() error {
+	return nil
 }
