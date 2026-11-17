@@ -5,28 +5,37 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/docker/go-units"
 	"github.com/matthiasharzer/discord-drive/api"
 	"github.com/matthiasharzer/discord-drive/logging"
 	"github.com/matthiasharzer/discord-drive/storage/discord"
+	"github.com/matthiasharzer/discord-drive/util/cobrautils"
 	"github.com/spf13/cobra"
 )
 
 var httpPort int
 var httpHost string
 var driveChannelID string
+var chunkSize = cobrautils.FlagFileSize{Bytes: 20 * units.MB}
 
 func init() {
 	Command.Flags().IntVarP(&httpPort, "port", "p", 4000, "The HTTP server port to listen on")
 	Command.Flags().StringVarP(&httpHost, "host", "", "", "The HTTP server host (default: all interfaces)")
 	Command.Flags().StringVarP(&driveChannelID, "channel", "c", "", "The Discord channel ID to use for storage")
+	Command.Flags().VarP(&chunkSize, "chunk-size", "", "The chunk size in bytes (default: 20 MiB)")
+
+	err := Command.MarkFlagRequired("channel")
+	if err != nil {
+		panic(err)
+	}
 }
 
 var Command = &cobra.Command{
 	Use:   "run",
 	Short: "Run discord drive",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if driveChannelID == "" {
-			return fmt.Errorf("a channel ID must be configured")
+		if chunkSize.Bytes <= 0 {
+			return fmt.Errorf("chunk size must be greater than 0")
 		}
 		return nil
 	},
@@ -36,7 +45,7 @@ var Command = &cobra.Command{
 			return fmt.Errorf("DISCORD_BOT_TOKEN environment variable is not set")
 		}
 
-		storageProvider, err := discord.NewStorageProvider(discordToken, driveChannelID)
+		storageProvider, err := discord.NewStorageProvider(discordToken, driveChannelID, chunkSize.Bytes)
 		if err != nil {
 			return fmt.Errorf("failed to create discord storage provider: %w", err)
 		}

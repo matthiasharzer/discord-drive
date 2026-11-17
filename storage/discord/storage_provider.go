@@ -6,14 +6,11 @@ import (
 	"sync"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/docker/go-units"
 	"github.com/matthiasharzer/discord-drive/storage"
 	"github.com/matthiasharzer/discord-drive/storage/chunk"
 	"github.com/matthiasharzer/discord-drive/storage/chunk/discord"
 	"github.com/matthiasharzer/discord-drive/storage/distributedfile"
 )
-
-const discordChunkSize = 9 * units.MiB // The limit is 10MB, but we leave some room for metadata and overhead
 
 type storageProviderContext struct {
 	client           *discordgo.Session
@@ -73,7 +70,7 @@ type StorageProvider struct {
 	distributedFileProvider storage.Provider
 }
 
-func NewStorageProvider(discordBotToken string, storageChannelID string) (storage.Provider, error) {
+func NewStorageProvider(discordBotToken string, storageChannelID string, chunkSize int64) (storage.Provider, error) {
 	dg, err := discordgo.New(fmt.Sprintf("Bot %s", discordBotToken))
 	if err != nil {
 		return nil, fmt.Errorf("error creating Discord session: %w", err)
@@ -99,7 +96,7 @@ func NewStorageProvider(discordBotToken string, storageChannelID string) (storag
 
 	return &StorageProvider{
 		context:                 context,
-		distributedFileProvider: distributedfile.NewStorageProvider(discordChunkSize, context.createChunkProviderFunc()),
+		distributedFileProvider: distributedfile.NewStorageProvider(chunkSize, context.createChunkProviderFunc()),
 	}, nil
 }
 
