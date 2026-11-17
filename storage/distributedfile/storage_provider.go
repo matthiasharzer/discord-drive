@@ -166,8 +166,8 @@ func (p *StorageProvider) Write(key string, data io.Reader) error {
 			break
 		}
 
-		remainingBytesToReadInChunk := p.chunkSize - currentChunkBytesRead
-		if remainingBytesToReadInChunk > 0 {
+		remainingBytesToWriteInChunk := p.chunkSize - currentChunkBytesRead
+		if remainingBytesToWriteInChunk > 0 {
 			_, err = currentChunkWriter.Write(b[:n])
 			if err != nil {
 				return fmt.Errorf("error writing chunk %d: %w", chunkIndex, err)
@@ -175,7 +175,7 @@ func (p *StorageProvider) Write(key string, data io.Reader) error {
 			continue
 		}
 
-		bytesToWriteIntoCurrentChunk := int64(n) + remainingBytesToReadInChunk
+		bytesToWriteIntoCurrentChunk := int64(n) + remainingBytesToWriteInChunk
 		if bytesToWriteIntoCurrentChunk > 0 {
 			_, err = currentChunkWriter.Write(b[:bytesToWriteIntoCurrentChunk])
 			if err != nil {
@@ -199,6 +199,7 @@ func (p *StorageProvider) Write(key string, data io.Reader) error {
 			if err != nil {
 				return fmt.Errorf("error writing chunk %d: %w", chunkIndex, err)
 			}
+			currentChunkBytesRead = int64(n) - bytesToWriteIntoCurrentChunk
 		}
 	}
 
