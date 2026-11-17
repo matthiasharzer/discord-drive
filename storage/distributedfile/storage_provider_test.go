@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/matthiasharzer/discord-drive/storage"
+	"github.com/matthiasharzer/discord-drive/storage/storagetest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -15,24 +17,10 @@ import (
 )
 
 func TestProvider_Save(t *testing.T) {
-	t.Run("reads a clean divided file", func(t *testing.T) {
-		provider, cleanup := testutils.TempDirFilesystemStorageProvider(t, int64(4))
-		defer cleanup()
-
-		err := provider.Write("testfile.txt", strings.NewReader("abcdefghijkl")) // 12 byte = 3 chunks
-		assert.NoError(t, err)
-
-		reader, err := provider.Read("testfile.txt")
-		require.NoError(t, err)
-		defer func() {
-			err := reader.Close()
-			require.NoError(t, err)
-		}()
-
-		data, err := io.ReadAll(reader)
-		require.NoError(t, err)
-
-		assert.Equal(t, "abcdefghijkl", string(data))
+	storagetest.RunProviderSuite(t, func(t *testing.T) storage.Provider {
+		provider, cleanup := testutils.TempDirFilesystemStorageProvider(t, int64(8))
+		t.Cleanup(cleanup)
+		return provider
 	})
 
 	t.Run("reads a clean divided file with an almost full chunk", func(t *testing.T) {
@@ -73,35 +61,6 @@ func TestProvider_Save(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "abcdefghijklm", string(data))
-	})
-
-	t.Run("reads large saved file", func(t *testing.T) {
-		provider, cleanup := testutils.TempDirFilesystemStorageProvider(t, int64(8))
-		defer cleanup()
-
-		content := `
-Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore
-magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd
-gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing
-elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos
-et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor
-sit amet.
-`
-
-		err := provider.Write("testfile.txt", strings.NewReader(content))
-		require.NoError(t, err)
-
-		reader, err := provider.Read("testfile.txt")
-		require.NoError(t, err)
-		defer func() {
-			err := reader.Close()
-			require.NoError(t, err)
-		}()
-
-		data, err := io.ReadAll(reader)
-		require.NoError(t, err)
-
-		assert.Equal(t, content, string(data))
 	})
 
 	t.Run("distributes content over multiple files", func(t *testing.T) {
