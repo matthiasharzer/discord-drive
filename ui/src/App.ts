@@ -1,3 +1,4 @@
+import './components/Background.ts';
 import { Router } from '@lit-labs/router';
 import { css, html } from 'lit';
 import { Component } from './litutil/Component.ts';
@@ -25,7 +26,7 @@ export class App extends Component {
 			width: 100%;
 		}
 
-		lb-background {
+		dd-background {
 			z-index: -1;
 		}
 	`;
@@ -43,6 +44,7 @@ export class App extends Component {
 
 	render() {
 		return html`
+			<dd-background></dd-background>
 			<main>
 				${this.router.outlet()}
 			</main>
