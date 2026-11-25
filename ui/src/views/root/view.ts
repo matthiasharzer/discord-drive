@@ -21,6 +21,7 @@ export class RootView extends Component {
 			flex-direction: column;
 			gap: 1rem;
 			max-width: 800px;
+			width: 100%;
 		}
 
 		.body {
