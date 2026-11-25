@@ -42,6 +42,7 @@ func Handler(storageProvider storage.Provider) http.HandlerFunc {
 			http.Error(w, "failed to store file", http.StatusInternalServerError)
 			return
 		}
+		logging.Info("file stored successfully", "identifier", identifier)
 
 		w.WriteHeader(http.StatusOK)
 	}
