@@ -7,7 +7,7 @@ COPY . .
 WORKDIR /app/ui
 
 RUN npm ci && \
-		npm run build \
+		npm run build
 
 FROM golang:1.27-alpine3.23 AS build
 
