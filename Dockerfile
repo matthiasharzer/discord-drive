@@ -1,3 +1,14 @@
+FROM node:26.12-trixie-slim AS build-ui
+
+WORKDIR /app
+
+COPY . .
+
+WORKDIR /app/ui
+
+RUN npm ci && \
+		npm run build \
+
 FROM golang:1.27-alpine3.23 AS build
 
 ARG version=unknown
@@ -12,6 +23,7 @@ RUN go mod download && \
 		go mod verify
 
 COPY . .
+COPY --from=build-ui /app/ui/public ui/public
 
 RUN module_path=$(go list -m) && \
 	go build \

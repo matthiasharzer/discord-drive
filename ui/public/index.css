@@ -1,0 +1,43 @@
+@font-face {
+	font-family: Karla;
+	src: url(./assets/fonts/Karla.ttf);
+}
+
+@font-face {
+	font-family: DMSans;
+	src: url(./assets/fonts/DMSans.ttf);
+}
+
+body {
+	-webkit-font-smoothing: antialiased;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 100dvh;
+	margin: 0;
+	line-height: 1;
+	overflow: hidden;
+	color-scheme: dark;
+	background-color: #1a1919;
+	color: var(--text-color);
+}
+
+:root {
+	--font-header: Karla, sans-serif;
+	--font-body: DMSans, sans-serif;
+
+	--header-background-color: #ff90e8;
+	--header-ink-color: #000;
+
+	--body-background-color: #a9d7b8;
+	--body-ink-color: #000;
+
+	--button-background-color: #5662f6;
+	--button-ink-color: #fff;
+
+	--primary-color: #5662f6;
+	--primary-ink-color: #fff;
+
+	--secondary-background-color: #cd79fd;
+	--secondary-ink-color: #fff;
+}

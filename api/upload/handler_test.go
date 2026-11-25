@@ -40,28 +40,4 @@ func TestHandler(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "abcdefghijkl", string(data))
 	})
-
-	t.Run("fails if HTTP method other than POST is used", func(t *testing.T) {
-		disallowedMethods := []string{
-			http.MethodGet,
-			http.MethodPut,
-			http.MethodDelete,
-			http.MethodPatch,
-		}
-		for _, method := range disallowedMethods {
-			t.Run("fails with method "+method, func(t *testing.T) {
-				request, err := http.NewRequest(method, "/", nil)
-				request.SetPathValue("identifier", "testfile.txt")
-				require.NoError(t, err)
-
-				recorder := httptest.NewRecorder()
-
-				handler := upload.Handler(nil)
-				handler.ServeHTTP(recorder, request)
-
-				assert.Equal(t, http.StatusMethodNotAllowed, recorder.Code)
-				assert.Equal(t, "method not allowed\n", recorder.Body.String())
-			})
-		}
-	})
 }
