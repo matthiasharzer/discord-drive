@@ -79,7 +79,7 @@ export class RootView extends Component {
 				}
 
 				.download {
-					flex: 1 1 auto;
+					flex: 0 1 auto;
 					overflow: hidden;
 					text-overflow: ellipsis;
 					white-space: nowrap;
