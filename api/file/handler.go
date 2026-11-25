@@ -12,11 +12,6 @@ import (
 
 func Handler(storageProvider storage.Provider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		identifier := r.PathValue("identifier")
 		if identifier == "" {
 			http.Error(w, "missing file identifier", http.StatusBadRequest)
