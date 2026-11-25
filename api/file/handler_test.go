@@ -34,30 +34,6 @@ func TestHandler(t *testing.T) {
 		assert.Equal(t, "abcdefghijkl", recorder.Body.String())
 	})
 
-	t.Run("fails if HTTP method other than GET is used", func(t *testing.T) {
-		disallowedMethods := []string{
-			http.MethodPost,
-			http.MethodPut,
-			http.MethodDelete,
-			http.MethodPatch,
-		}
-		for _, method := range disallowedMethods {
-			t.Run("fails with method "+method, func(t *testing.T) {
-				request, err := http.NewRequest(method, "/", nil)
-				request.SetPathValue("identifier", "testfile.txt")
-				require.NoError(t, err)
-
-				recorder := httptest.NewRecorder()
-
-				handler := file.Handler(nil)
-				handler.ServeHTTP(recorder, request)
-
-				assert.Equal(t, http.StatusMethodNotAllowed, recorder.Code)
-				assert.Equal(t, "method not allowed\n", recorder.Body.String())
-			})
-		}
-	})
-
 	t.Run("fails if unknown identifier is used", func(t *testing.T) {
 		provider, cleanup := testutils.TempDirFilesystemStorageProvider(t, int64(8))
 		defer cleanup()

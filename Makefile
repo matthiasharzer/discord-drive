@@ -14,7 +14,7 @@ build-server: clean
 	@GOOS=linux GOARCH=arm64 go build -o ./build/$(OUTPUT_NAME)-linux-arm64 -ldflags "-X $(MODULE_NAME)/cmd/version.version=$(BUILD_VERSION)" ./main.go
 
 build-ui: install-ui-dependencies
-	@cd cmd/twitch/run/ui && npm run build
+	@cd ui && npm run build
 
 qa: qa-server qa-ui
 
@@ -32,13 +32,13 @@ test-server:
 qa-ui: analyze-ui test-ui
 
 analyze-ui: install-ui-dependencies
-	@cd cmd/twitch/run/ui && npm run analyze
+	@cd ui && npm run analyze
 
 test-ui: install-ui-dependencies
-	@cd cmd/twitch/run/ui && npm run test
+	@cd ui && npm run test
 
 install-ui-dependencies:
-	@cd cmd/twitch/run/ui && npm ci
+	@cd ui && npm ci
 
 .PHONY: clean \
 				build \
